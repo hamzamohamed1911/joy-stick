@@ -1,17 +1,23 @@
+"use client";
 import CustomBreadcrumbs from "../components/CustomBreadcrumbs";
 import SideBar from "../components/profileComponents/SideBar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const Layout = ({ children }) => {
+  const queryClient = new QueryClient();
+
   return (
     <>
-      <CustomBreadcrumbs />
-      <div className="flex flex-col lg:flex-row w-full container mx-auto gap-6">
-        <SideBar />
+      <QueryClientProvider client={queryClient}>
+        <CustomBreadcrumbs />
+        <div className="flex flex-col lg:flex-row w-full container mx-auto gap-6">
+          <SideBar />
 
-        <main className="flex-grow lg:w-[calc(100%-16rem)] w-full">
-          {children}
-        </main>
-      </div>
+          <main className="flex-grow lg:w-[calc(100%-16rem)] w-full">
+            {children}
+          </main>
+        </div>
+      </QueryClientProvider>
     </>
   );
 };

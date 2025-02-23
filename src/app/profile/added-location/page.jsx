@@ -1,88 +1,110 @@
 "use client";
 import Image from "next/image";
-import React, { useState } from "react";
-import { addIcon, addIcon2, deleteIcon } from "../../../../public";
-import CustomModal from "@/app/components/CustomModal";
+import React, { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { addIcon2, deleteIcon } from "../../../../public";
+import Cookies from "js-cookie";
+import CustomModel from "./_components/custom-model";
+import Loading from "./_components/Loading";
+import { fetchAddresses, deleteAddress, addAddress,  } from "../../services/fetchAddress";
 
 const AddedLocations = () => {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const token = Cookies.get("token");
+
+  const { data: addresses, isLoading, isError, error } = useQuery({
+    queryKey: ["addresses"],
+    queryFn: () => fetchAddresses(token),
+  });
+
+  const { mutate: removeAddress } = useMutation({
+    mutationFn: (addressId) => deleteAddress(addressId, token),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["addresses"]);
+    },
+  });
+
+  const { mutate: addNewAddress } = useMutation({
+    mutationFn: (newAddress) => addAddress(newAddress, token),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["addresses"]);
+    },
+  });
+
+  const handleDelete = (addressId) => {
+    removeAddress(addressId);
+  };
+
+  const handleAddAddress = (newAddress) => {
+    addNewAddress(newAddress, {
+      onSuccess: () => {
+        window.location.reload(); 
+      },
+    });
+  };
+  
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+
+  useEffect(() => {
+    if (error?.message.includes("Unauthorized")) {
+      router.push("/login");
+    }
+  }, [error, router]);
+
   return (
     <div className="flex flex-col justify-between gap-6 h-full md:p-0 p-4">
-      <div className=" border-[1px] border-gray-300  h-screen   w-full">
-        <div className="border-b-[1px] border-solid border-[#E4E7E9] py-4 px-6 items-center flex justify-between">
-          <h1 className=" font-semibold"> العناوين المضافة </h1>
+      <div className="border-[1px] border-gray-300 h-screen w-full">
+        <div className="border-b-[1px] border-solid border-[#E4E7E9] py-4 px-6 flex justify-between items-center">
+          <h1 className="font-semibold">العناوين المضافة</h1>
           <button onClick={handleOpen} className="pl-4">
             <Image alt="add Icon" width={25} src={addIcon2} />
           </button>
         </div>
         <div className="lg:p-8 md:p-6 p-4 space-y-4">
-          <div className="border-solid border-[#E4E7E9] border-[1px] py-4 px-6 rounded-xl w-full min-h-[100px] flex flex-row ">
-            <div className="space-y-5 w-full">
-              {/* Left side (text content) */}
-              <div className="flex justify-between">
-                <h3 className="text-xl font-medium">المنزل</h3>
-                <div className="flex gap-2 justify-center items-center">
-                  <input
-                    type="checkbox"
-                    className="appearance-none cursor-pointer h-6 w-6 rounded-full border-[4px] border-gray-300 checked:border-primary  focus:outline-none"
-                  />
+          {isLoading ? (
+            <div className="text-center text-gray-500">
+              <Loading />
+            </div>
+          ) : isError ? (
+            <p className="text-center text-red-500">Error: {error.message}</p>
+          ) : addresses.length > 0 ? (
+            addresses.map((address) => (
+              <div
+                key={address.id}
+                className="border-solid border-[#E4E7E9] border-[1px] py-4 px-6 rounded-xl w-full min-h-[100px] flex flex-row"
+              >
+                <div className="space-y-5 w-full">
+                  <div className="flex justify-between">
+                    <h3 className="text-xl font-medium">{address.key}</h3>
+                    <div className="flex gap-2 justify-center items-center">
+                      <input
+                        type="checkbox"
+                        className="appearance-none cursor-pointer h-6 w-6 rounded-full border-[4px] border-gray-300 checked:border-primary focus:outline-none"
+                        defaultChecked={address.is_main === 1}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <p className="text-[#666666] lg:text-lg md:text-md text-sm max-w-lg">
+                      {address.address}
+                    </p>
+                    <button onClick={() => handleDelete(address.id)}>
+                      <Image alt="delete Icon" src={deleteIcon} width={25} />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-between">
-                <p className="text-[#666666] lg:text-lg md:text-md text-sm max-w-lg">
-                  عباس العقاد - مدينة نصر
-                </p>
-                <Image alt="play Icon" src={deleteIcon} width={25} />
-              </div>
-            </div>
-          </div>
+            ))
+          ) : (
+            <p className="text-center text-gray-500">لا يوجد عناوين مضافة</p>
+          )}
         </div>
       </div>
-      <CustomModal open={open} onClose={handleClose}>
-        <form className=" lg:min-w-[500px] w-[300px] m-4">
-          <div className="bg-[#F5F6F7] w-auto rounded-lg ">
-            <h2 className="text-lg font-medium   flex justify-center p-3 text-center">
-              اضافة عنوان
-            </h2>
-          </div>
-          <div className="my-2">
-            <div className="w-full ">
-              <div className="flex md:gap-8 gap-6  ">
-                <input
-                  placeholder="رقم العمارة"
-                  className=" mb-3 mt-1 focus:border-primary px-5 py-3 text-sm border bg-[#FBFBFB] border-[#8686861A] text-gray-800  shadow-sm focus:outline-none rounded-[8px] w-full"
-                  type="number"
-                />
-                <input
-                  placeholder=" رقم الشقة"
-                  className=" mb-3 mt-1 focus:border-primary px-5 py-3 text-sm border bg-[#FBFBFB] border-[#8686861A] text-gray-800  shadow-sm focus:outline-none rounded-[8px] w-full"
-                  type="number"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="my-2">
-            <input
-              placeholder="العنوان"
-              className="block mb-3 mt-1 focus:border-primary px-5 py-2 text-md border bg-[#FBFBFB] border-[#8686861A] text-gray-800 text-lg shadow-sm focus:outline-none rounded-[8px] w-full"
-              type="text"
-            />
-          </div>
-          <div className="flex justify-end w-full">
-            <button type="button">
-              <Image
-                className="w-12"
-                alt="history Icon"
-                width={50}
-                src={addIcon}
-              />
-            </button>
-          </div>
-        </form>
-      </CustomModal>
+      <CustomModel open={open} setOpen={setOpen} onAddAddress={handleAddAddress} />
     </div>
   );
 };

@@ -1,47 +1,76 @@
 "use client";
+
 import { useState } from "react";
-import PopularTag from "./PopularTag";
+import { FiXCircle, FiFilter } from "react-icons/fi";
+import Brands from "./brands";
 import SalaryRange from "./SalaryRange";
-import { FiXCircle ,FiFilter} from "react-icons/fi"; 
-
-
-const headphoneBrands = [
-  { id: 1, brand: "Sony" },
-  { id: 2, brand: "Bose" },
-  { id: 3, brand: "Sennheiser" },
-  { id: 4, brand: "JBL" },
-  { id: 5, brand: "Beats by Dre" },
-  { id: 6, brand: "Apple AirPods" },
-  { id: 7, brand: "Skullcandy" },
-  { id: 8, brand: "Philips" },
-  { id: 9, brand: "Samsung" },
-  { id: 10, brand: "AKG" },
-  { id: 11, brand: "Shure" },
-];
+import PopularTag from "./PopularTag";
+import { useDispatch, useSelector } from "react-redux";
+import { setFilters } from "../../redux/filterSlice"; 
 
 const StoreSideBar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const dispatch = useDispatch(); 
+  const filters = useSelector((state) => state.filters); 
 
   const toggleSidebar = () => {
     setIsSidebarOpen((open) => !open);
   };
 
+  const handleBrandChange = (brandIds) => {
+    let updatedFilters = { ...filters };
+  
+    if (!brandIds || brandIds.length === 0) {
+      updatedFilters.brand_id = null;
+    } else {
+      // Ensure brandIds is an array before calling join
+      updatedFilters.brand_id = Array.isArray(brandIds) ? brandIds.join(',') : brandIds;
+    }
+  
+    dispatch(setFilters(updatedFilters));
+  };
+  
+  
+  const handleTagChange = (tags) => {
+    let updatedFilters = { ...filters }; 
+  
+    if (!tags || tags.length === 0) {
+      updatedFilters.tags = null; 
+    } else {
+      updatedFilters.tags = tags.join(','); 
+    }
+  
+    dispatch(setFilters(updatedFilters)); 
+  };
+  
+  const handlePriceRangeChange = (range) => {
+    const updatedFilters = { ...filters };
+    if (range.price_from === null && range.price_to === null) {
+      delete updatedFilters.price_from;
+      delete updatedFilters.price_to;
+    } else {
+      updatedFilters.price_from = range.price_from;
+      updatedFilters.price_to = range.price_to;
+    }
+    dispatch(setFilters(updatedFilters));
+  };
+  
+
+  
   return (
     <div className="lg:w-80 w-full lg:h-screen flex lg:flex-col relative">
       {/* Hamburger Menu Icon */}
       <div className="lg:hidden flex justify-center items-center w-full p-4">
-        <button 
-          className="text-3xl" 
-          onClick={toggleSidebar}
-        >
+        <button className="text-3xl" onClick={toggleSidebar}>
           <FiFilter />
         </button>
       </div>
+
       {/* Overlay */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden" 
-          onClick={toggleSidebar} 
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          onClick={toggleSidebar}
         ></div>
       )}
 
@@ -52,35 +81,18 @@ const StoreSideBar = () => {
         } lg:translate-x-0`}
       >
         {/* Close Icon */}
-        <button 
-          className="lg:hidden text-3xl mb-4" 
-          onClick={toggleSidebar}
-        >
+        <button className="lg:hidden text-3xl mb-4" onClick={toggleSidebar}>
           <FiXCircle />
         </button>
 
-        {/* Categories */}
-        <div>
-          <h3 className="font-medium text-xl">الأقسام</h3>
-          <ul className="space-y-2 text-lg flex flex-col mt-4 overflow-x-auto overflow-hidden whitespace-normal flex-grow">
-            {headphoneBrands.map((brand) => (
-              <li key={brand.id} className="flex items-center gap-2">
-                <input
-                  id={`brand-${brand.id}`}
-                  type="checkbox"
-                  className="appearance-none cursor-pointer h-5 w-5 rounded-full border-[4px] border-gray-300 checked:border-primary focus:outline-none"
-                />
-                <label htmlFor={`brand-${brand.id}`}>{brand.brand}</label>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Brands */}
+        <Brands onBrandChange={handleBrandChange} />
 
         {/* Divider and Additional Components */}
         <div className="border-[1px] my-4 border-[#E4E7E9]"></div>
-        <SalaryRange />
+        <SalaryRange onPriceRangeChange={handlePriceRangeChange} />
         <div className="border-[1px] my-4 border-[#E4E7E9]"></div>
-        <PopularTag />
+        <PopularTag onTagChange={handleTagChange} />
       </div>
     </div>
   );

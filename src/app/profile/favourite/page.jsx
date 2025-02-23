@@ -1,100 +1,181 @@
 "use client";
-import React, { useState } from "react";
-import {
-  addIcon,
-  favouiteHeart,
-  favouiteIcon,
-  headPhone,
-  mouseImg,
-} from "../../../../public";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { addIcon, favouiteHeart, favouiteIcon } from "../../../../public";
+
 import Image from "next/image";
-export const FavouriteProducts = [
-  {
-    id: 1,
-    imageSrc: headPhone,
-    title: "سماعة رأس",
-    description: "سماعة رأس عالية الجودة مع صوت نقي وتصميم مريح",
-    price: "300 جنيه",
-  },
-  {
-    id: 2,
-    imageSrc: headPhone,
-    title: "سماعة رأس",
-    description: "ميكروفون احترافي لتسجيل الصوت بجودة فائقة",
-    price: "500 جنيه",
-  },
-  {
-    id: 3,
-    imageSrc: headPhone,
-    title: "سماعة رأس",
-    description: "كاميرا ويب بدقة عالية مثالية لمكالمات الفيديو",
-    price: "250 جنيه",
-  },
-  {
-    id: 4,
-    imageSrc: headPhone,
-    title: "سماعة رأس",
-    description: "ماوس لاسلكي سريع الاستجابة مع تصميم مريح",
-    price: "150 جنيه",
-  },
-];
-const Favourite = () => {
+import Cookies from "js-cookie";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSnackbar } from "notistack";
+import Loading from "./Loading";
+import { useRouter } from "next/navigation";
+
+const fetchFav = async (token) => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  try {
+    const response = await fetch(`${apiUrl}products/favorited`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch favourites");
+    }
+
+    const data = await response.json();
+    return data.data?.data;
+  } catch (error) {
+    return error.message;
+  }
+};
+
+const Favourite = ({ title }) => {
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+  const token = Cookies.get("token");
+  const { enqueueSnackbar } = useSnackbar();
+  const router = useRouter();
   const [favorites, setFavorites] = useState({});
 
-  const toggleFavorite = (productId) => {
-    setFavorites((prev) => ({
-      ...prev,
-      [productId]: !prev[productId],
-    }));
+  const { data: FavData, isLoading, isError } = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => fetchFav(token),
+  });
+
+  useEffect(() => {
+    const storedFavorites = Cookies.get("favorites");
+    const parsedFavorites = storedFavorites ? JSON.parse(storedFavorites) : {};
+
+    const filteredFavorites = Array.isArray(FavData)
+      ? Object.keys(parsedFavorites)
+          .filter((id) => FavData.some((p) => p.id === id))
+          .reduce((acc, id) => {
+            acc[id] = parsedFavorites[id];
+            return acc;
+          }, {})
+      : {};
+
+    setFavorites(filteredFavorites);
+  }, [FavData]);
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async (productId) => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}favorite/${productId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle favorite");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, productId) => {
+      setFavorites((prevFavorites) => {
+        const updatedFavorites = { ...prevFavorites };
+        if (updatedFavorites[productId]) {
+          delete updatedFavorites[productId];
+        } else {
+          updatedFavorites[productId] = true;
+        }
+
+        const displayedFavorites = Object.keys(updatedFavorites)
+          .filter((id) => Array.isArray(FavData) && FavData.some((p) => p.id === id))
+          .reduce((acc, id) => {
+            acc[id] = true;
+            return acc;
+          }, {});
+
+        Cookies.set("favorites", JSON.stringify(displayedFavorites), { expires: 7 });
+
+        return updatedFavorites;
+      });
+
+      enqueueSnackbar("تم الإزالة من المفضلة", {
+        variant: "success",
+        anchorOrigin: { vertical: "top", horizontal: "right" },
+        style: { backgroundColor: "#02A09B", color: "#FFFFFF" },
+      });
+
+      queryClient.invalidateQueries(["favorites"]);
+    },
+  });
+
+  const handleAddToCart = (name, id) => {
+    const firstName = encodeURIComponent(name.split(" ")[0]);
+    router.push(`/store/${firstName}/${id}`);
   };
 
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  if (isError) {
+    return <p className="text-red-500 text-center mt-4">حدث خطأ أثناء جلب البيانات</p>;
+  }
+
   return (
-    <section className="flex flex-col md:px-4 px-6 h-full">
-      <div className=" border-[1px] border-[#E4E7E9] border-solid  md:text-lg text-md h-full  w-full">
-        <div className="border-b-[1px] border-solid border-[#E4E7E9] py-4 px-6 items-center flex ">
-          <h1 className=" font-semibold">المفضلة</h1>
-        </div>
-        {FavouriteProducts.map((product) => (
-          <div
-            key={product.id}
-            className="md:p-6 p-4 md:m-8 m-4 my-4 md:my-8 rounded-lg shadow-lg relative grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-center"
-          >
-            <div className="bg-Secondary flex w-full  justify-center items-center rounded-xl col-span-12 md:col-span-3">
-              <Image width={160} src={product.imageSrc} alt="favurite Item " />
-            </div>
-            <div className="col-span-12 md:col-span-9 space-y-2">
-            <div className="flex items-center justify-between">
-            <h2 className="font-medium md:text-2xl text-lg">سماعة رأس</h2>
-                <div
-                  onClick={() => toggleFavorite(product.id)}
-                  className="md:w-14 w-12  cursor-pointer "
-                >
-                  <Image
-                    src={favorites[product.id] ? favouiteHeart : favouiteIcon}
-                    alt="Favorite Icon"
-                    className={`transition duration-200 ease-in-out md:w-14 w-12 ${
-                      favorites[product.id] ? "text-red-500" : "text-gray-400"
-                    }`}
-                  />
-                </div>
-              </div>
-              <p className="text-[#737791] max-w-72">
-                هناك حقيقة مثبتة منذ زمن طويل وهي أن المحتوى المقروء
-              </p>
-              <div className="flex items-center justify-between">
-                <h2 className="text-primary font-semibold">{product.price} </h2>
-                <div
-                  onClick={() => toggleFavorite(product.id)}
-                  className="cursor-pointer md:w-14 w-12 "
-                >
-                  <Image src={addIcon} alt="add Icon" className="md:w-14 w-12"  />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+    <section className="flex flex-col md:px-4 px-6 h-full max-w-[1120px]">
+    <div className="border-[1px] border-[#E4E7E9] border-solid md:text-lg text-md h-full w-full">
+      <div className="border-b-[1px] border-solid border-[#E4E7E9] py-4 px-6 items-center flex">
+        {token && <h1 className="font-semibold">{title}</h1>}
       </div>
-    </section>
+      {FavData?.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 p-6 lg:mx-20">
+          {FavData.map((product) => (
+            <div key={product.id} className="w-full">
+              <div className="p-6 rounded-lg shadow-lg relative flex flex-col md:flex-row items-center gap-6">
+                <div className="bg-[#F2FAFA] flex w-full md:w-auto justify-center items-center rounded-xl">
+                  <Image width={160} height={160} src={product.main_image} alt={product.name} />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-medium md:text-2xl text-lg">
+                      {product.name.length > 25 ? product.name.slice(0, 25) + "..." : product.name}
+                    </h2>
+                    <div
+                      onClick={() => toggleFavoriteMutation.mutate(product.id)}
+                      className="md:w-14 w-12 cursor-pointer shrink-0"
+                    >
+                      <Image
+                        src={favorites[product.id] ? favouiteIcon : favouiteHeart}
+                        alt="Favorite Icon"
+                        className="transition duration-200 ease-in-out md:w-14 w-12"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[#737791] max-w-72">
+                    {product.small_description.length > 60
+                      ? product.small_description.slice(0, 60) + "..."
+                      : product.small_description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-primary font-semibold">{product.price}</h2>
+                    <div onClick={() => handleAddToCart(product.name, product.id)} className="cursor-pointer md:w-14 w-12">
+                      <Image src={addIcon} alt="Add Icon" className="md:w-14 w-12" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex justify-center items-center w-full h-[50vh]">
+          <p className="text-xl font-semibold">عذراً، لا توجد بيانات لعرضها</p>
+        </div>
+      )}
+    </div>
+  </section>
+  
   );
 };
 

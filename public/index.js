@@ -27,7 +27,7 @@ import joyIcon from "./joy.svg";
 import helpCenterIcon from "./helpcenter.svg";
 import joyStickGif from "./joyStickGif.gif";
 import signOut from "./SignOut.svg";
-import profile from "./profile.svg";
+import profile from "./profile.jpg";
 import addIcon2 from "./addIcon2.svg";
 import historyIcon from "./hostoryIcon.svg";
 import deleteIcon from "./deleteIcon.svg";

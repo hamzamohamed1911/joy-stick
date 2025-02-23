@@ -3,21 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #FFFFFF;
-  }
-}
 
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: 'Tajawal', sans-serif;  font-family: 'Tajawal', sans-serif;
 }
 .font-tajawal {
@@ -81,6 +69,14 @@ body {
   filter: invert(1) brightness(2);
 }
   
+
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
 @media (max-width: 768px) {
 
   .swiper-button-next,
@@ -93,9 +89,7 @@ body {
     font-size: 1.5rem !important; 
   }
  
- 
 }
-
 
 @media (max-width: 480px) {
 
@@ -111,6 +105,12 @@ body {
   .icon-white {
     filter: none; 
     color: #02A09B !important; 
+  }
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
   }
 }
 

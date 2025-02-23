@@ -2,45 +2,51 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import Cookies from "js-cookie";
 
-const storeData = [
-  {
-    id: "000085752257",
-    products: [
-      { name: "منتج 1", price: "25 جنيه", image: "/images/product1.jpg" },
-      { name: "منتج 2", price: "25 جنيه", image: "/images/product2.jpg" },
-    ],
-    totalPrice: "100 جنيه",
-    status: "تم التسليم",
-    date: "9-يناير-2024",
-  },
-  {
-    id: "000085752258",
-    products: [
-      { name: "منتج 3", price: "50 جنيه", image: "/images/product3.jpg" },
-      { name: "منتج 4", price: "150 جنيه", image: "/images/product4.jpg" },
-    ],
-    totalPrice: "200 جنيه",
-    status: "تم التسليم",
-    date: "9-يناير-2024",
-  },
-  {
-    id: "000085752259",
-    products: [
-      { name: "منتج 5", price: "200 جنيه", image: "/images/product5.jpg" },
-    ],
-    totalPrice: "200 جنيه",
-    status: "تم التسليم",
-    date: "9-يناير-2024",
-  },
-];
+
+const fetchData = async (type) => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const token = Cookies.get("token");
+
+  if (!token) {
+    throw new Error("Unauthorized: No token found");
+  }
+
+  const response = await fetch(`${apiUrl}History/GetAll?type=${type}`, {    
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,    
+      "lang":"ar"
+  
+    },
+  });
+  console.log("Response Status:", response.status)
+  if (response.status === 401) {
+    throw new Error("Unauthorized: Please log in again");
+  }
+
+  const data = await response.json();
+  if (!data.success) throw new Error("Failed to fetch Data");
+  return data.data || [];
+};
 
 const StoreTable = () => {
-  const router = useRouter();
+ const router = useRouter();
+
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['store'], 
+    queryFn: () => fetchData("store"),  
+  });
 
   const handleRowClick = (row) => {
-    router.push(`/profile/previous-requests/${row.id}`); // Navigate to the order details page
+    // router.push(`/profile/previous-requests/${row.id}`);
   };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error fetching data</div>;
+  if (!data || data.length === 0) return <div>No data available</div>;
 
   return (
     <TableContainer component={Paper} sx={{ border: "1px solid #D9D5EC", borderRadius: "4px" }}>
@@ -54,12 +60,12 @@ const StoreTable = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {storeData.map((row) => (
+          {data.map((row) => (
             <TableRow key={row.id} onClick={() => handleRowClick(row)} style={{ cursor: "pointer" }}>
-              <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.id}</TableCell>
-              <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.totalPrice}</TableCell>
+              <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.order_number}</TableCell>
+              <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.total_price}</TableCell>
               <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.status}</TableCell>
-              <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.date}</TableCell>
+              <TableCell sx={{ textAlign: "center", fontWeight: "bold" }}>{row.created_at}</TableCell>
             </TableRow>
           ))}
         </TableBody>

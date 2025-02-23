@@ -1,37 +1,47 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 
-const MainImageSwitcher = ({ headphone }) => {
-  const [selectedImage, setSelectedImage] = useState(headphone?.subImages[0]?.src);
+const MainImageSwitcher = ({ images, image }) => {
+  const [selectedImage, setSelectedImage] = useState(image || null);
 
-  useEffect(() => {
-    if (headphone?.subImages?.length > 0) {
-      setSelectedImage(headphone.subImages[0].src);
-    }
-  }, [headphone.subImages]);
+  if (!images || images.length === 0) {
+    return <p className="text-center text-gray-500">No images available.</p>;
+  }
 
   return (
-    <div className="flex lg:flex-row flex-col md:gap-8 gap-4">
-      <div className="flex lg:flex-col flex-row justify-center items-center lg:gap-4 gap-2 lg:h-96 h-auto">
-        {headphone.subImages.map(subImage => (
+    <div className="flex lg:flex-row flex-col md:gap-4 gap-4 h-full">
+      <div className="flex lg:flex-col flex-row justify-center  items-center  md:gap-4 gap-2  h-auto w-auto ">
+        {images.map((image, index) => (
           <Image
-            key={subImage.id}
-            src={subImage.src}
-            alt={`Sub image ${subImage.id}`}
+            key={index}
+            src={image}
+            alt={`Product image ${index + 1}`}
             width={80}
             height={80}
-            className={`cursor-pointer border rounded-xl lg:w-24 md:w-20 w-16  hover:border-primary ${
-              selectedImage === subImage.src ? "border-primary border-[2px]" : "border-gray-300"
+            className={`cursor-pointer object-fill border rounded-xl xl:w-32 md:w-28 w-20 hover:border-primary xl:h-28  md:h-24 h-16 p-4 shrink-0 ${
+              selectedImage === image
+                ? "border-primary border-[2px]"
+                : "border-gray-300"
             }`}
-            onClick={() => setSelectedImage(subImage.src)}
+            onClick={() => setSelectedImage(image)}
           />
         ))}
       </div>
 
-      {/* Main image */}
-      <div className="bg-[#F2FAFA] rounded-lg lg:w-[470px] w-auto  flex justify-center items-center">
-        <Image src={selectedImage} alt={headphone.title} width={300} height={300} />
+      <div className="bg-[#F2FAFA] rounded-lg lg:w-[480px]  w-auto flex justify-center items-center">
+        {selectedImage ? (
+           <div className="relative w-[350px] h-[350px]">
+           <Image
+             src={selectedImage}
+             alt="Selected Product"
+             fill
+             className="rounded-lg object-contain"
+           />
+         </div>
+        ) : (
+          <p className="text-gray-500">No image available</p>
+        )}
       </div>
     </div>
   );

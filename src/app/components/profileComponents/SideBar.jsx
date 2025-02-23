@@ -4,13 +4,43 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "../../../../public";
+import Cookies from "js-cookie"; 
 
 const SideBar = () => {
+
+ 
+  const handleLogout = async () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const token = Cookies.get("token"); 
+  
+    if (!token) {
+      console.error("Unauthorized: No token found");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${apiUrl}user/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (response.ok) {
+        Cookies.remove("token");
+        window.location.reload(); 
+      } else {
+        console.error("فشل تسجيل الخروج");
+      }
+    } catch (error) {
+      console.error("خطأ أثناء تسجيل الخروج:", error);
+    }
+  };
   const pathName = usePathname();
 
   return (
     <div className="lg:w-64 w-full lg:h-screen bg-white border-[1px] border-solid border-gray-300 rounded-sm shadow-sm flex lg:flex-col lg:justify-between">
-      {/* Horizontal scrolling for small screens */}
       <ul className="lg:space-y-4 lg:gap-0 text-xl gap-5 space-x-reverse lg:flex lg:flex-col flex lg:mt-4 mt-0 overflow-x-auto lg:overflow-hidden whitespace-nowrap lg:whitespace-normal flex-grow hide-scrollbar">
         {ProfilenavLinks.map((link, index) => (
           <Link
@@ -40,8 +70,7 @@ const SideBar = () => {
         ))}
       </ul>
 
-      {/* Logout Button for large screens only */}
-      <div className="hidden lg:flex lg:flex-col lg:justify-end">
+      <div className="hidden lg:flex lg:flex-col lg:justify-end" onClick={handleLogout}>
         <li className="flex cursor-pointer lg:text-md text-lg font-semibold p-2 gap-2 py-4  hover:text-white items-center hover:bg-primary w-full mb-4">
           <Image width={22} src={signOut} alt="sign out" />
           تسجيل الخروج
